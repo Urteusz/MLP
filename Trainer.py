@@ -12,7 +12,7 @@ class Trainer:
         self.momentum = momentum
         self.shuffle = shuffle
 
-    def train(self, max_epochs=1000, error_threshold=None, log_interval=10, log_file="training_log.txt"):
+    def train(self, max_epochs=10000, error_threshold=None, log_interval=10, log_file="training_log.txt"):
         print(
             f"\nRozpoczęcie treningu: max_epochs={max_epochs}, error_threshold={error_threshold}, lr={self.learning_rate}, momentum={self.momentum}")
         with open(log_file, 'w') as log:
