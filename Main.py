@@ -7,7 +7,7 @@ def ask_float(prompt, default):
         value = input(f"{prompt} [{default}]: ").strip()
         return float(value) if value else default
     except ValueError:
-        print("❗ Niepoprawna liczba, użyto wartości domyślnej.")
+        print("Niepoprawna liczba, użyto wartości domyślnej.")
         return default
 
 def ask_int(prompt, default):
@@ -15,7 +15,7 @@ def ask_int(prompt, default):
         value = input(f"{prompt} [{default}]: ").strip()
         return int(value) if value else default
     except ValueError:
-        print("❗ Niepoprawna liczba całkowita, użyto domyślnej.")
+        print("Niepoprawna liczba całkowita, użyto domyślnej.")
         return default
 
 def ask_bool(prompt, default):
@@ -33,7 +33,7 @@ def ask_architecture(prompt, default):
     try:
         return [int(x) for x in value.split(",")]
     except ValueError:
-        print("❗ Błąd formatu, użyto architektury domyślnej.")
+        print("Błąd formatu, użyto architektury domyślnej.")
         return default
 
 def main_menu():

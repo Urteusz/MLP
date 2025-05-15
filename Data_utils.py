@@ -3,8 +3,8 @@ import numpy as np
 import random
 
 
-def split_dataset(dataset, train_ratio=0.7, seed=None):  # Zmieniono seed na None domyślnie
-    if seed is not None:
+def split_dataset(dataset, train_ratio=0.7, seed=42):  # Zmieniono seed na None domyślnie
+    if seed is not 42:
         random.seed(seed)
 
     shuffled_dataset = list(dataset)  # Tworzymy kopię, żeby nie modyfikować oryginału
