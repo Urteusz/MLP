@@ -18,6 +18,10 @@ def run_iris_classification(
         trained_model_file="iris_mlp_model.pkl",
         training_log_file="iris_training_log.csv"
 ):
+    training_log_file = (
+        f"iris_lr{learning_rate}_mom{momentum}_bias{use_bias}.csv"
+    )
+
     if architecture is None:
         architecture = [4, 8, 3]
     print("--- Klasyfikacja zbioru Irysów (parametryzowana) ---")
@@ -45,11 +49,13 @@ def run_iris_classification(
 
     if max_epochs is None:
         trainer.train(error_threshold=error_threshold,
+                      max_epochs=max_epochs,
                       log_interval=log_interval,
                       log_file=training_log_file)
     else:
         trainer.train(error_threshold=error_threshold,
                       log_interval=log_interval,
+                      max_epochs=max_epochs,
                       log_file=training_log_file)
 
 

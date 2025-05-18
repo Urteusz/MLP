@@ -44,9 +44,9 @@ def main_menu():
     use_bias = ask_bool("Używać biasu? (True/False)", True)
     learning_rate = ask_float("Learning rate", 0.1)
     momentum = ask_float("Momentum", 0.2)
-    max_epochs = ask_int("Maksymalna liczba epok", 500)
-    error_threshold = ask_float("Próg błędu MSE", 0.01)
-    log_interval = ask_int("Logowanie co N epok", 20)
+    max_epochs = ask_int("Maksymalna liczba epok", 1000)
+    error_threshold = ask_float("Próg błędu MSE", 0.005)
+    log_interval = ask_int("Logowanie co N epok", 1)
 
     print("\n--- Uruchamianie klasyfikacji Irysów ---\n")
 
