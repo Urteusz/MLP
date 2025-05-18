@@ -5,12 +5,11 @@ import json  # Do ładniejszego zapisu list w pliku CSV
 
 
 class Trainer:
-    def __init__(self, mlp, training_data, learning_rate=0.1, momentum=0.0, shuffle=True):
+    def __init__(self, mlp, training_data, learning_rate=0.1, momentum=0.0):
         self.mlp = mlp
         self.training_data = [(np.array(x, dtype=float), np.array(y, dtype=float)) for x, y in training_data]
         self.learning_rate = learning_rate
         self.momentum = momentum
-        self.shuffle = shuffle
 
     def train(self, max_epochs=10000, error_threshold=None, log_interval=10, log_file="training_log.txt"):
         print(
@@ -22,8 +21,7 @@ class Trainer:
                 epoch_total_error = 0.0
 
                 current_training_data = self.training_data[:]
-                if self.shuffle:
-                    random.shuffle(current_training_data)
+                random.shuffle(current_training_data)
 
                 for x_pattern, y_expected in current_training_data:
                     # 1. Propagacja w przód

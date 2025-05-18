@@ -4,49 +4,50 @@ import matplotlib.pyplot as plt
 import glob
 import os
 
+
 def smooth(data, window=10):
-    data = np.array(data, dtype=float)  # Konwersja na tablicę float
-    return np.convolve(data, np.ones(window)/window, mode='valid')
+    data = np.array(data, dtype=float)
+    return np.convolve(data, np.ones(window) / window, mode='valid')
 
-# Znajdź wszystkie pasujące pliki CSV
-files = glob.glob("iris_lr*.csv")
 
-plt.figure(figsize=(10, 6))
+def plot_smoothed_mse(files, title, x_limit=1000, window=10):
+    plt.figure(figsize=(10, 6))
 
-for file in files:
-    df = pd.read_csv(file, encoding='latin1')
+    for file in files:
+        df = pd.read_csv(file, encoding='latin1')
 
-    df = df[pd.to_numeric(df['Epoch'], errors='coerce').notnull()]
+        # Upewnij się, że dane są liczbowe
+        df = df[pd.to_numeric(df['Epoch'], errors='coerce').notnull()]
+        df['AvgError'] = df['AvgError'].astype(str).str.replace(r'[^\d\.\-eE]', '', regex=True)
+        df['AvgError'] = pd.to_numeric(df['AvgError'], errors='coerce')
 
-    # Czyszczenie kolumny z błędów
-    df['AvgError'] = df['AvgError'].astype(str).str.replace(r'[^\d\.\-eE]', '', regex=True)
+        epochs = df['Epoch']
+        errors = df['AvgError']
 
-    df['AvgError'] = pd.to_numeric(df['AvgError'], errors='coerce')
+        smoothed_errors = smooth(errors.values, window=window)
+        smoothed_epochs = epochs.values[:len(smoothed_errors)]
 
-    epochs = df['Epoch']
-    errors = df['AvgError']
+        label = os.path.splitext(os.path.basename(file))[0]
+        plt.plot(smoothed_epochs, smoothed_errors, label=label)
 
-    # Wygładź dane (opcjonalnie zmień window=5,10...)
-    smoothed_errors = smooth(errors.values, window=10)
+    plt.xlabel('Epoka')
+    plt.ylabel('Błąd Średniokwadratowy (MSE) - Wygładzony')
+    plt.title(title)
+    plt.legend()
+    plt.grid(True)
+    plt.xlim(0, x_limit)
 
-    # Dostosuj długość epok po wygładzeniu
-    smoothed_epochs = epochs.values[:len(smoothed_errors)]
+    # Poprawione ustawienie znaczników osi X
+    tick_interval = 100 if x_limit <= 1000 else 500
+    plt.xticks(np.arange(0, x_limit + 1, tick_interval))
 
-    label = os.path.splitext(os.path.basename(file))[0]
-    plt.plot(smoothed_epochs, smoothed_errors, label=label)
 
-plt.xlabel('Epoka')
-plt.ylabel('Błąd Średniokwadratowy (MSE) - Wygładzony')
-plt.title('MSE a Epoki Podczas Treningu')
-plt.legend()
-plt.grid(True)
-
-# Zakres osi X na sztywno od 0 do 1000
-plt.xlim(0, 1000)
-
-# Podpisy co 100 epok
-plt.xticks(ticks=range(0, 1001, 100))
-
+# === WYKRES 1: IRYSY ===
+iris_files = glob.glob("Iris_lr*.csv")
+plot_smoothed_mse(iris_files, title="MSE a Epoki Podczas Treningu (Irys)", x_limit=1000, window=10)
 plt.show()
 
-
+# === WYKRES 2: AUTOENKODER ===
+ae_files = glob.glob("Autoencoder_*.csv")
+plot_smoothed_mse(ae_files, title="MSE a Epoki Podczas Treningu (Autoenkoder)", x_limit=3000, window=20)
+plt.show()

@@ -35,14 +35,24 @@ class Layer:
 
     def backward(self, output_error_gradient, learning_rate, momentum=0.0):
 
-        sigmoid_deriv = self.sigmoid_derivative(self.last_z)
+        sigmoid_deriv = self.last_output * (1 - self.last_output)
         delta = output_error_gradient * sigmoid_deriv
 
         weight_gradient = np.outer(self.last_input, delta)
 
+        max_gradient_norm = 1.0
+        gradient_norm = np.linalg.norm(weight_gradient)
+        if gradient_norm > max_gradient_norm:
+            weight_gradient = weight_gradient * (max_gradient_norm / gradient_norm)
+
         # Aktualizacja wag z momentum
         self.weight_velocity = (momentum * self.weight_velocity) - (learning_rate * weight_gradient)
         self.weights += self.weight_velocity
+
+        # Przykładowy kod do dodania w funkcji backward
+
+
+
 
         if self.use_bias:
             bias_gradient = delta
@@ -57,7 +67,5 @@ class Layer:
         clipped_x = np.clip(x, -500, 500)
         return 1 / (1 + np.exp(-clipped_x))
 
-    @staticmethod
-    def sigmoid_derivative(z):
-        s = Layer.sigmoid(z)  # Używamy tej samej funkcji sigmoid co w forward
-        return s * (1 - s)
+
+

@@ -1,23 +1,41 @@
 # Data_utils.py
 import numpy as np
+from collections import defaultdict
 import random
 
-
-def split_dataset(dataset, train_ratio=0.7, seed=42):  # Zmieniono seed na None domyślnie
-    if seed is not 42:
+def split_dataset(dataset, train_per_class=35, test_per_class=15, seed=42):
+    """
+    Zakłada, że dataset to lista przykładów, gdzie ostatni element to etykieta klasy.
+    Zwraca dokładnie (train_per_class + test_per_class) próbek na klasę.
+    """
+    if seed is not None:
         random.seed(seed)
 
-    shuffled_dataset = list(dataset)  # Tworzymy kopię, żeby nie modyfikować oryginału
-    random.shuffle(shuffled_dataset)
+    # Grupowanie danych wg klasy
+    class_groups = defaultdict(list)
+    for sample in dataset:
+        label = str(sample[-1])  # <-- KLUCZOWA POPRAWKA
+        class_groups[label].append(sample)
 
-    split_point = int(len(shuffled_dataset) * train_ratio)
-    train_set = shuffled_dataset[:split_point]
-    test_set = shuffled_dataset[split_point:]
+    train_set = []
+    test_set = []
+
+    for label, samples in class_groups.items():
+        if len(samples) < train_per_class + test_per_class:
+            raise ValueError(f"Za mało próbek w klasie '{label}' (znaleziono {len(samples)}).")
+
+        random.shuffle(samples)
+        train_set.extend(samples[:train_per_class])
+        test_set.extend(samples[train_per_class:train_per_class + test_per_class])
+
+    random.shuffle(train_set)
+    random.shuffle(test_set)
+
     return train_set, test_set
 
 
+
 def load_iris_data(filename="iris.data"):
-    data = []
     label_to_one_hot = {
         "Iris-setosa": [1.0, 0.0, 0.0],
         "Iris-versicolor": [0.0, 1.0, 0.0],
@@ -70,28 +88,3 @@ def normalize_features(dataset):
     # Połącz znormalizowane cechy z powrotem z etykietami
     normalized_dataset = list(zip(normalized_features, labels_only))
     return normalized_dataset
-
-
-def load_patterns_from_file(filename):
-    """
-    Wczytuje wzorce z pliku. Format: ((wejscia),(wyjscia)) na linię.
-    Np. ((1,0,0,0),(1,0,0,0))
-    """
-    patterns = []
-    with open(filename, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                # Używamy eval, ale z ostrożnością - plik musi być zaufany
-                pattern_tuple = eval(line)
-                if isinstance(pattern_tuple, tuple) and len(pattern_tuple) == 2:
-                    inputs = np.array(pattern_tuple[0], dtype=float)
-                    outputs = np.array(pattern_tuple[1], dtype=float)
-                    patterns.append((inputs, outputs))
-                else:
-                    print(f"Pominięto niepoprawny format linii: {line}")
-            except Exception as e:
-                print(f"Błąd podczas parsowania linii '{line}': {e}")
-    return patterns
