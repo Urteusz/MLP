@@ -3,7 +3,6 @@ from MLP import MLP
 from Trainer import Trainer
 from Data_utils import load_iris_data, normalize_features, split_dataset
 
-
 def run_classification(
         name="Iris",
         architecture=None,
@@ -36,7 +35,6 @@ def run_classification(
         test_data = train_data
         if architecture is None:
             architecture = [4, 2, 4]
-
     else:
         print(f"Nieznany typ zadania: {name}")
         return

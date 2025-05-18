@@ -4,17 +4,12 @@ from collections import defaultdict
 import random
 
 def split_dataset(dataset, train_per_class=35, test_per_class=15, seed=42):
-    """
-    Zakłada, że dataset to lista przykładów, gdzie ostatni element to etykieta klasy.
-    Zwraca dokładnie (train_per_class + test_per_class) próbek na klasę.
-    """
     if seed is not None:
         random.seed(seed)
 
-    # Grupowanie danych wg klasy
     class_groups = defaultdict(list)
     for sample in dataset:
-        label = str(sample[-1])  # <-- KLUCZOWA POPRAWKA
+        label = str(sample[-1])
         class_groups[label].append(sample)
 
     train_set = []
@@ -33,8 +28,6 @@ def split_dataset(dataset, train_per_class=35, test_per_class=15, seed=42):
 
     return train_set, test_set
 
-
-
 def load_iris_data(filename="iris.data"):
     label_to_one_hot = {
         "Iris-setosa": [1.0, 0.0, 0.0],
@@ -52,7 +45,6 @@ def load_iris_data(filename="iris.data"):
 
             parts = line.split(',')
             try:
-                # Pierwsze 4 cechy to floaty, ostatnia to etykieta klasy
                 features = np.array([float(p) for p in parts[:-1]], dtype=float)
                 label_str = parts[-1]
 
@@ -63,13 +55,10 @@ def load_iris_data(filename="iris.data"):
                 print(f"Pominięto linię z powodu błędu konwersji: {line}")
                 continue
 
-    # Połącz cechy i etykiety w krotki (cechy, etykieta)
     dataset = list(zip(raw_features_list, labels_list))
     return dataset
 
-
 def normalize_features(dataset):
-    # Rozdziel cechy i etykiety
     if not dataset:
         return []
 
@@ -80,11 +69,9 @@ def normalize_features(dataset):
     max_vals = np.max(features_only, axis=0)
 
     ranges = max_vals - min_vals
-    # Zapobieganie dzieleniu przez zero, jeśli cecha ma stałą wartość
     ranges[ranges == 0] = 1.0
 
     normalized_features = (features_only - min_vals) / ranges
 
-    # Połącz znormalizowane cechy z powrotem z etykietami
     normalized_dataset = list(zip(normalized_features, labels_only))
     return normalized_dataset

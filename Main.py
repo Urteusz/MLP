@@ -1,5 +1,3 @@
-# main.py
-
 from runner import run_classification
 
 def ask_float(prompt, default):
@@ -163,10 +161,6 @@ def main():
     elif choose == '4':
         print("Zamykam program...")
         return
-
-
-
-
 
 if __name__ == "__main__":
     main()

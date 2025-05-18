@@ -1,7 +1,6 @@
-# Trainer.py
 import random
 import numpy as np
-import json  # Do ładniejszego zapisu list w pliku CSV
+import json
 
 
 class Trainer:
@@ -19,58 +18,38 @@ class Trainer:
 
             for epoch in range(max_epochs):
                 epoch_total_error = 0.0
-
                 current_training_data = self.training_data[:]
                 random.shuffle(current_training_data)
 
                 for x_pattern, y_expected in current_training_data:
-                    # 1. Propagacja w przód
                     y_actual = self.mlp.forward(x_pattern)
-
-                    # 2. Obliczenie błędu dla wzorca (do sumowania błędu epoki)
                     pattern_error = self.mlp.calculate_pattern_error(y_actual, y_expected)
                     epoch_total_error += pattern_error
-
-                    # 3. Propagacja wsteczna i aktualizacja wag
-                    # (expected_output jest używane do obliczenia gradientu w MLP.backward)
                     self.mlp.backward(y_expected, self.learning_rate, self.momentum)
 
                 avg_epoch_error = epoch_total_error / len(self.training_data)
 
                 if epoch % log_interval == 0 or epoch == max_epochs - 1:
                     log.write(f"{epoch},{avg_epoch_error:.8f}\n")
-                    log.flush()  # Wymuś zapis na dysk
-                    # print(f"Epoka: {epoch}, Średni błąd (MSE): {avg_epoch_error:.8f}")
+                    log.flush()
 
                 if error_threshold is not None and avg_epoch_error <= error_threshold:
                     print(
                         f"Trening zakończony: Osiągnięto próg błędu {avg_epoch_error:.8f} <= {error_threshold} w epoce {epoch}.")
                     log.write(f"Trening zakończony w epoce {epoch}, błąd: {avg_epoch_error:.8f}\n")
-                    return  # Zakończ trening
+                    return
 
             print(
                 f"Trening zakończony: Osiągnięto maksymalną liczbę epok ({max_epochs}). Finalny błąd: {avg_epoch_error:.8f}")
             log.write(f"Trening zakończony po {max_epochs} epokach, błąd: {avg_epoch_error:.8f}\n")
 
     def test(self, test_data, log_file="testing_log.txt", log_elements=None):
-        """
-        Testuje sieć i zapisuje wyniki do pliku.
-        :param test_data: Dane testowe (lista krotek (x, y)).
-        :param log_file: Nazwa pliku do zapisu logów.
-        :param log_elements: Lista stringów określająca, co logować, np.
-                             ['input', 'expected', 'output', 'pattern_error', 'output_errors',
-                              'hidden_outputs', 'hidden_weights', 'hidden_biases',
-                              'output_weights', 'output_biases'].
-                              Jeśli None, loguje wszystko.
-        """
         if log_elements is None:
             log_elements = ['input', 'expected', 'output', 'pattern_error', 'output_errors',
                             'hidden_outputs', 'hidden_weights', 'hidden_biases',
                             'output_weights', 'output_biases']
 
         print(f"\nRozpoczęcie testowania. Wyniki zostaną zapisane do: {log_file}")
-
-        # Przygotowanie danych testowych (konwersja na numpy arrays)
         processed_test_data = [(np.array(x, dtype=float), np.array(y, dtype=float)) for x, y in test_data]
 
         with open(log_file, 'w') as log:
@@ -89,14 +68,13 @@ class Trainer:
 
             total_mse = 0
             for i, (x_pattern, y_expected) in enumerate(processed_test_data):
-                # Propagacja w przód (bez uczenia)
                 y_actual = self.mlp.forward(x_pattern)
 
                 pattern_mse_error = self.mlp.calculate_pattern_error(y_actual, y_expected)
                 total_mse += pattern_mse_error
-                output_node_errors = (y_expected - y_actual) ** 2  # Kwadraty błędów dla każdego neuronu wyjściowego
+                output_node_errors = (y_expected - y_actual) ** 2
 
-                params = self.mlp.get_all_parameters()  # Pobierz parametry PO forward pass
+                params = self.mlp.get_all_parameters()
 
                 log_line_parts = [str(i + 1)]
                 if 'input' in log_elements: log_line_parts.append(f"\"{json.dumps(x_pattern.tolist())}\"")
@@ -126,33 +104,26 @@ class Trainer:
             log.write(f"\nOverall Average MSE on Test Set: {avg_mse_test:.8f}\n")
 
     def calculate_classification_metrics(self, data_set, class_names=None):
-        """Oblicza metryki klasyfikacji: dokładność, macierz pomyłek, precision, recall, F1."""
         y_true_labels = []
         y_pred_labels = []
 
-        # Konwersja na numpy array
         processed_data_set = [(np.array(x, dtype=float), np.array(y, dtype=float)) for x, y in data_set]
 
         for x_pattern, y_expected_one_hot in processed_data_set:
             y_actual_probs = self.mlp.forward(x_pattern)
-
             true_label = np.argmax(y_expected_one_hot)
             pred_label = np.argmax(y_actual_probs)
-
             y_true_labels.append(true_label)
             y_pred_labels.append(pred_label)
 
         y_true_labels = np.array(y_true_labels)
         y_pred_labels = np.array(y_pred_labels)
-
         accuracy = np.mean(y_true_labels == y_pred_labels)
 
         num_classes = self.mlp.layer_sizes[-1] if self.mlp.layer_sizes and len(self.mlp.layer_sizes) > 0 else 0
         if not class_names:
             class_names = [f"Klasa {i}" for i in range(num_classes)]
 
-        # Macierz pomyłek (ręcznie lub z sklearn jeśli dozwolone)
-        # Dla uproszczenia, zaimplementuję podstawową macierz pomyłek
         cm = np.zeros((num_classes, num_classes), dtype=int)
         for true, pred in zip(y_true_labels, y_pred_labels):
             cm[true, pred] += 1
@@ -161,14 +132,12 @@ class Trainer:
         print(f"Dokładność (Accuracy): {accuracy:.4f} ({np.sum(y_true_labels == y_pred_labels)}/{len(y_true_labels)})")
 
         print("\nMacierz Pomyłek (Confusion Matrix):")
-        # Wyświetlanie macierzy pomyłek
         header = "Pred: " + " ".join([f"{name[:3]}" for name in class_names])
         print(header)
         for i, name in enumerate(class_names):
             row_str = f"True {name[:3]}: " + " ".join([f"{cm[i, j]:3d}" for j in range(num_classes)])
             print(row_str)
 
-        # Precision, Recall, F1-score dla każdej klasy
         print("\nMetryki per klasa:")
         precision_list, recall_list, f1_list = [], [], []
 
@@ -190,7 +159,6 @@ class Trainer:
             print(f"    Recall:    {recall:.4f}")
             print(f"    F1-score:  {f1:.4f}")
 
-        # Uśrednione metryki (makro)
         avg_precision = np.mean(precision_list)
         avg_recall = np.mean(recall_list)
         avg_f1 = np.mean(f1_list)
