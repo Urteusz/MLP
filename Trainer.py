@@ -40,7 +40,7 @@ class Trainer:
                 if epoch % log_interval == 0 or epoch == max_epochs - 1:
                     log.write(f"{epoch},{avg_epoch_error:.8f}\n")
                     log.flush()  # Wymuś zapis na dysk
-                    print(f"Epoka: {epoch}, Średni błąd (MSE): {avg_epoch_error:.8f}")
+                    # print(f"Epoka: {epoch}, Średni błąd (MSE): {avg_epoch_error:.8f}")
 
                 if error_threshold is not None and avg_epoch_error <= error_threshold:
                     print(
