@@ -2,48 +2,52 @@ import random
 import numpy as np
 import json
 
-
 class Trainer:
     def __init__(self, mlp, training_data, learning_rate=0.1, momentum=0.0):
+        # Inicjalizacja trenera z siecią MLP, danymi treningowymi i parametrami uczenia
         self.mlp = mlp
         self.training_data = [(np.array(x, dtype=float), np.array(y, dtype=float)) for x, y in training_data]
         self.learning_rate = learning_rate
         self.momentum = momentum
 
     def train(self, max_epochs=10000, error_threshold=None, log_interval=10, log_file="training_log.txt"):
-        print(
-            f"\nRozpoczęcie treningu: max_epochs={max_epochs}, error_threshold={error_threshold}, lr={self.learning_rate}, momentum={self.momentum}")
+        # Trening sieci neuronowej metodą propagacji wstecznej
+        print(f"\nRozpoczęcie treningu: max_epochs={max_epochs}, error_threshold={error_threshold}, "
+              f"lr={self.learning_rate}, momentum={self.momentum}")
+
         with open(log_file, 'w') as log:
-            log.write("Epoch,AvgError\n")
+            log.write("Epoch,AvgError\n")  # Nagłówek pliku logowania
 
             for epoch in range(max_epochs):
                 epoch_total_error = 0.0
                 current_training_data = self.training_data[:]
-                random.shuffle(current_training_data)
+                random.shuffle(current_training_data)  # Mieszamy dane co epokę
 
                 for x_pattern, y_expected in current_training_data:
-                    y_actual = self.mlp.forward(x_pattern)
+                    y_actual = self.mlp.forward(x_pattern)  # Przepuszczenie danych przez sieć
                     pattern_error = self.mlp.calculate_pattern_error(y_actual, y_expected)
                     epoch_total_error += pattern_error
-                    self.mlp.backward(y_expected, self.learning_rate, self.momentum)
+                    self.mlp.backward(y_expected, self.learning_rate, self.momentum)  # Aktualizacja wag
 
                 avg_epoch_error = epoch_total_error / len(self.training_data)
 
+                # Logowanie błędu co log_interval epok
                 if epoch % log_interval == 0 or epoch == max_epochs - 1:
                     log.write(f"{epoch},{avg_epoch_error:.8f}\n")
                     log.flush()
 
+                # Sprawdzenie warunku zatrzymania
                 if error_threshold is not None and avg_epoch_error <= error_threshold:
-                    print(
-                        f"Trening zakończony: Osiągnięto próg błędu {avg_epoch_error:.8f} <= {error_threshold} w epoce {epoch}.")
+                    print(f"Trening zakończony: Osiągnięto próg błędu {avg_epoch_error:.8f} <= {error_threshold} w epoce {epoch}.")
                     log.write(f"Trening zakończony w epoce {epoch}, błąd: {avg_epoch_error:.8f}\n")
                     return
 
-            print(
-                f"Trening zakończony: Osiągnięto maksymalną liczbę epok ({max_epochs}). Finalny błąd: {avg_epoch_error:.8f}")
+            # Komunikat jeśli osiągnięto maksymalną liczbę epok
+            print(f"Trening zakończony: Osiągnięto maksymalną liczbę epok ({max_epochs}). Finalny błąd: {avg_epoch_error:.8f}")
             log.write(f"Trening zakończony po {max_epochs} epokach, błąd: {avg_epoch_error:.8f}\n")
 
     def test(self, test_data, log_file="testing_log.txt", log_elements=None):
+        # Testowanie wytrenowanego modelu i zapis wyników
         if log_elements is None:
             log_elements = ['input', 'expected', 'output', 'pattern_error', 'output_errors',
                             'hidden_outputs', 'hidden_weights', 'hidden_biases',
@@ -53,6 +57,7 @@ class Trainer:
         processed_test_data = [(np.array(x, dtype=float), np.array(y, dtype=float)) for x, y in test_data]
 
         with open(log_file, 'w') as log:
+            # Przygotowanie nagłówka pliku logu
             header_parts = ["PatternNum"]
             if 'input' in log_elements: header_parts.append("Input")
             if 'expected' in log_elements: header_parts.append("ExpectedOutput")
@@ -69,29 +74,24 @@ class Trainer:
             total_mse = 0
             for i, (x_pattern, y_expected) in enumerate(processed_test_data):
                 y_actual = self.mlp.forward(x_pattern)
-
                 pattern_mse_error = self.mlp.calculate_pattern_error(y_actual, y_expected)
                 total_mse += pattern_mse_error
                 output_node_errors = (y_expected - y_actual) ** 2
 
+                # Pobieramy wszystkie parametry sieci
                 params = self.mlp.get_all_parameters()
 
+                # Zapisujemy dane do logu (w wybranej konfiguracji)
                 log_line_parts = [str(i + 1)]
                 if 'input' in log_elements: log_line_parts.append(f"\"{json.dumps(x_pattern.tolist())}\"")
                 if 'expected' in log_elements: log_line_parts.append(f"\"{json.dumps(y_expected.tolist())}\"")
                 if 'output' in log_elements: log_line_parts.append(f"\"{json.dumps(y_actual.tolist())}\"")
                 if 'pattern_error' in log_elements: log_line_parts.append(f"{pattern_mse_error:.8f}")
-                if 'output_errors' in log_elements: log_line_parts.append(
-                    f"\"{json.dumps(output_node_errors.tolist())}\"")
-
-                if 'hidden_outputs' in log_elements: log_line_parts.append(
-                    f"\"{json.dumps(params['hidden_outputs'])}\"")
-                if 'hidden_weights' in log_elements: log_line_parts.append(
-                    f"\"{json.dumps(params['hidden_weights'])}\"")
+                if 'output_errors' in log_elements: log_line_parts.append(f"\"{json.dumps(output_node_errors.tolist())}\"")
+                if 'hidden_outputs' in log_elements: log_line_parts.append(f"\"{json.dumps(params['hidden_outputs'])}\"")
+                if 'hidden_weights' in log_elements: log_line_parts.append(f"\"{json.dumps(params['hidden_weights'])}\"")
                 if 'hidden_biases' in log_elements: log_line_parts.append(f"\"{json.dumps(params['hidden_biases'])}\"")
-
-                if 'output_weights' in log_elements: log_line_parts.append(
-                    f"\"{json.dumps(params['output_weights'])}\"")
+                if 'output_weights' in log_elements: log_line_parts.append(f"\"{json.dumps(params['output_weights'])}\"")
                 if 'output_biases' in log_elements: log_line_parts.append(f"\"{json.dumps(params['output_biases'])}\"")
 
                 log.write(",".join(log_line_parts) + "\n")
@@ -104,6 +104,7 @@ class Trainer:
             log.write(f"\nOverall Average MSE on Test Set: {avg_mse_test:.8f}\n")
 
     def calculate_classification_metrics(self, data_set, class_names=None):
+        # Oblicza metryki klasyfikacji: Accuracy, Precision, Recall, F1
         y_true_labels = []
         y_pred_labels = []
 
@@ -120,10 +121,12 @@ class Trainer:
         y_pred_labels = np.array(y_pred_labels)
         accuracy = np.mean(y_true_labels == y_pred_labels)
 
+        # Przygotowanie klasyfikatorów
         num_classes = self.mlp.layer_sizes[-1] if self.mlp.layer_sizes and len(self.mlp.layer_sizes) > 0 else 0
         if not class_names:
             class_names = [f"Klasa {i}" for i in range(num_classes)]
 
+        # Obliczanie macierzy pomyłek
         cm = np.zeros((num_classes, num_classes), dtype=int)
         for true, pred in zip(y_true_labels, y_pred_labels):
             cm[true, pred] += 1
@@ -131,6 +134,7 @@ class Trainer:
         print(f"\n--- Metryki Klasyfikacji ---")
         print(f"Dokładność (Accuracy): {accuracy:.4f} ({np.sum(y_true_labels == y_pred_labels)}/{len(y_true_labels)})")
 
+        # Wyświetlenie macierzy pomyłek
         print("\nMacierz Pomyłek (Confusion Matrix):")
         header = "Pred: " + " ".join([f"{name[:3]}" for name in class_names])
         print(header)
@@ -138,6 +142,7 @@ class Trainer:
             row_str = f"True {name[:3]}: " + " ".join([f"{cm[i, j]:3d}" for j in range(num_classes)])
             print(row_str)
 
+        # Wyliczanie metryk per klasa
         print("\nMetryki per klasa:")
         precision_list, recall_list, f1_list = [], [], []
 
@@ -159,6 +164,7 @@ class Trainer:
             print(f"    Recall:    {recall:.4f}")
             print(f"    F1-score:  {f1:.4f}")
 
+        # Wyliczanie średnich metryk
         avg_precision = np.mean(precision_list)
         avg_recall = np.mean(recall_list)
         avg_f1 = np.mean(f1_list)
@@ -167,5 +173,11 @@ class Trainer:
         print(f"  Recall:    {avg_recall:.4f}")
         print(f"  F1-score:  {avg_f1:.4f}")
         print("----------------------------")
-        return {"accuracy": accuracy, "confusion_matrix": cm,
-                "precision": precision_list, "recall": recall_list, "f1": f1_list}
+
+        return {
+            "accuracy": accuracy,
+            "confusion_matrix": cm,
+            "precision": precision_list,
+            "recall": recall_list,
+            "f1": f1_list
+        }
