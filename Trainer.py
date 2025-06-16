@@ -46,62 +46,6 @@ class Trainer:
             print(f"Trening zakończony: Osiągnięto maksymalną liczbę epok ({max_epochs}). Finalny błąd: {avg_epoch_error:.8f}")
             log.write(f"Trening zakończony po {max_epochs} epokach, błąd: {avg_epoch_error:.8f}\n")
 
-    def test(self, test_data, log_file="testing_log.txt", log_elements=None):
-        # Testowanie wytrenowanego modelu i zapis wyników
-        if log_elements is None:
-            log_elements = ['input', 'expected', 'output', 'pattern_error', 'output_errors',
-                            'hidden_outputs', 'hidden_weights', 'hidden_biases',
-                            'output_weights', 'output_biases']
-
-        print(f"\nRozpoczęcie testowania. Wyniki zostaną zapisane do: {log_file}")
-        processed_test_data = [(np.array(x, dtype=float), np.array(y, dtype=float)) for x, y in test_data]
-
-        with open(log_file, 'w') as log:
-            # Przygotowanie nagłówka pliku logu
-            header_parts = ["PatternNum"]
-            if 'input' in log_elements: header_parts.append("Input")
-            if 'expected' in log_elements: header_parts.append("ExpectedOutput")
-            if 'output' in log_elements: header_parts.append("ActualOutput")
-            if 'pattern_error' in log_elements: header_parts.append("PatternMSEError")
-            if 'output_errors' in log_elements: header_parts.append("OutputNodeErrors")
-            if 'hidden_outputs' in log_elements: header_parts.append("HiddenLayerOutputs")
-            if 'hidden_weights' in log_elements: header_parts.append("HiddenLayerWeights")
-            if 'hidden_biases' in log_elements: header_parts.append("HiddenLayerBiases")
-            if 'output_weights' in log_elements: header_parts.append("OutputLayerWeights")
-            if 'output_biases' in log_elements: header_parts.append("OutputLayerBiases")
-            log.write(",".join(header_parts) + "\n")
-
-            total_mse = 0
-            for i, (x_pattern, y_expected) in enumerate(processed_test_data):
-                y_actual = self.mlp.forward(x_pattern)
-                pattern_mse_error = self.mlp.calculate_pattern_error(y_actual, y_expected)
-                total_mse += pattern_mse_error
-                output_node_errors = (y_expected - y_actual) ** 2
-
-                # Pobieramy wszystkie parametry sieci
-                params = self.mlp.get_all_parameters()
-
-                # Zapisujemy dane do logu (w wybranej konfiguracji)
-                log_line_parts = [str(i + 1)]
-                if 'input' in log_elements: log_line_parts.append(f"\"{json.dumps(x_pattern.tolist())}\"")
-                if 'expected' in log_elements: log_line_parts.append(f"\"{json.dumps(y_expected.tolist())}\"")
-                if 'output' in log_elements: log_line_parts.append(f"\"{json.dumps(y_actual.tolist())}\"")
-                if 'pattern_error' in log_elements: log_line_parts.append(f"{pattern_mse_error:.8f}")
-                if 'output_errors' in log_elements: log_line_parts.append(f"\"{json.dumps(output_node_errors.tolist())}\"")
-                if 'hidden_outputs' in log_elements: log_line_parts.append(f"\"{json.dumps(params['hidden_outputs'])}\"")
-                if 'hidden_weights' in log_elements: log_line_parts.append(f"\"{json.dumps(params['hidden_weights'])}\"")
-                if 'hidden_biases' in log_elements: log_line_parts.append(f"\"{json.dumps(params['hidden_biases'])}\"")
-                if 'output_weights' in log_elements: log_line_parts.append(f"\"{json.dumps(params['output_weights'])}\"")
-                if 'output_biases' in log_elements: log_line_parts.append(f"\"{json.dumps(params['output_biases'])}\"")
-
-                log.write(",".join(log_line_parts) + "\n")
-
-                if (i + 1) % 10 == 0 or (i + 1) == len(processed_test_data):
-                    print(f"Testowanie wzorca {i + 1}/{len(processed_test_data)}")
-
-            avg_mse_test = total_mse / len(processed_test_data)
-            print(f"Testowanie zakończone. Średni błąd MSE na zbiorze testowym: {avg_mse_test:.8f}")
-            log.write(f"\nOverall Average MSE on Test Set: {avg_mse_test:.8f}\n")
 
     def calculate_classification_metrics(self, data_set, class_names=None):
         # Oblicza metryki klasyfikacji: Accuracy, Precision, Recall, F1

@@ -83,7 +83,7 @@ plt.show()
 
 # === WYKRES 2: AUTOENKODER ===
 ae_files = glob.glob("Autoencoder_*.csv")
-plot_smoothed_mse(ae_files, title="MSE a Epoki Podczas Treningu (Autoenkoder)", x_limit=3000, window=20)
+plot_smoothed_mse(ae_files, title="MSE a Epoki Podczas Treningu (Autoenkoder)", x_limit=1000, window=20)
 plt.show()
 
 # === WYKRES 3: PORÓWNANIE AUTOENKODERA BIAS ON VS OFF ===
