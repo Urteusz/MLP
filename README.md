@@ -11,7 +11,10 @@ Implementacja prostego MLP od podstaw (bez frameworków) z obsługą:
 MLP.py / Layer.py / Trainer.py / Data_utils.py / runner.py / Main.py
 models/ (zapisy modeli per tryb)
 logs/   (pliki CSV z błędem per tryb)
-config/requirements.txt
+figures/ (automatycznie generowane wykresy porównawcze)
+config/requirements.txt (zależności + pytest)
+tests/ (testy jednostkowe)
+LICENSE (MIT)
 README.md
 ```
 
@@ -36,34 +39,71 @@ python Main.py --mode all --batch-prefix wszystko
 ### Argumenty
 | Argument | Opis |
 |----------|------|
-| --mode | iris | autoencoder | batch | all |
-| --architecture | np. 4,8,3 (domyślna zależnie od trybu) |
+| --mode | Dostępne: `iris`, `autoencoder`, `batch`, `all` |
+| --architecture | np. `4,8,3` (domyślna zależnie od trybu) |
 | --learning-rate | > 0 (domyślnie 0.1) |
-| --momentum | [0,1] (domyślnie 0.2) |
-| --no-bias | wyłącza bias |
-| --max-epochs | domyślnie Iris 1000, Autoencoder 3000 |
-| --error-threshold | próg MSE (Iris None, Autoencoder 1e-6) |
-| --log-interval | co ile epok zapis do CSV |
-| --model-file | własna nazwa pliku modelu |
-| --batch-prefix | prefiks dla modeli w batch |
+| --momentum | W zakresie [0,1] (domyślnie 0.2) |
+| --no-bias | Wyłącza bias (domyślnie włączony) |
+| --max-epochs | Iris domyślnie 1000, Autoencoder 3000 |
+| --error-threshold | Próg MSE (Iris: None, Autoencoder: 1e-6 domyślnie) |
+| --log-interval | Co ile epok zapis do CSV (domyślnie 1) |
+| --model-file | Własna nazwa pliku modelu (opcjonalnie) |
+| --batch-prefix | Prefiks dla modeli w batch |
 
 ## Batch nadpisania
-W trybie `--mode batch` można globalnie nadpisać: architekturę, lr, momentum, bias, max_epochs, error_threshold, log_interval.
+W trybie `--mode batch` można globalnie nadpisać: `architecture`, `learning-rate`, `momentum`, `bias`, `max-epochs`, `error-threshold`, `log-interval`.
+
+## Architektura
+Model MLP tworzony jest na liście rozmiarów warstw, np. `[4, 8, 3]`:
+- Warstwa wejściowa: rozmiar 4 (cechy Iris)
+- 1 warstwa ukryta: 8 neuronów (sigmoid)
+- Warstwa wyjściowa: 3 neurony (one-hot klas)
+Autoencoder: `[4, 2, 4]` kompresuje wejście 4D do 2D i rekonstruuje 4D.
+Aktualizacja wag: klasyczne backprop + momentum, aktywacja sigmoid, funkcja błędu MSE.
 
 ## Dane
-Plik `iris.data` musi znajdować się w katalogu głównym repo (jest używany przez runner przez ścieżkę bezwzględną). Autoencoder używa danych syntetycznych.
+Plik `iris.data` (pełny zbiór 150 rekordów) musi znajdować się w katalogu głównym repo. Ładowanie odbywa się poprzez ścieżkę bezwzględną w `runner.py`.
+Autoencoder używa syntetycznych wektorów one-hot.
+Źródło Iris: https://archive.ics.uci.edu/ml/datasets/iris
 
 ## Logi i modele
-Przykład nazwy logu: `logs/iris/Iris_lr0.2_mom0.3_biasTrue.csv`
-Przykład modelu: `models/iris/iris_mlp_model.pkl` lub `models/autoencoder/autoencoder_4_2_4_bias_on.pkl`
+Przykład logu: `logs/iris/Iris_lr0.2_mom0.3_biasTrue.csv`
+Przykład modelu: `models/iris/Iris_model.pkl` lub `models/autoencoder/autoencoder_4_2_4_bias_on.pkl`
 
 ## Metryki
-Iris: accuracy, confusion matrix, precision/recall/F1 per klasa.
+Klasyfikacja Iris: Accuracy, macierz pomyłek, Precision/Recall/F1 per klasa + macro-averages.
 Autoencoder: MSE per wzorzec + średni MSE + porównanie z wczytanym modelem.
+
+## Generowanie wykresów
+Po zebraniu logów możesz wygenerować zestawienia:
+```bash
+python plots.py
+```
+Zapisane pliki znajdziesz w `figures/` (np. `iris_all.png`, `autoencoder_all.png`).
+
+## Testy
+Uruchomienie testów jednostkowych:
+```bash
+python -m pytest -q
+```
+Obecnie testy obejmują:
+- Poprawność kształtu wyjścia sieci
+- Spadek błędu po iteracjach uczenia na prostym zbiorze XOR
+
+## Przykładowe wyniki (referencyjne)
+| Zadanie | Architektura | LR | Momentum | Epoki | Accuracy / MSE |
+|---------|--------------|----|----------|-------|----------------|
+| Iris    | 4,8,3        |0.2 |0.3       | 30    | Accuracy ≈ 97.8% |
+| Autoencoder | 4,2,4    |0.2 |0.1       | 3000  | Średni MSE ≈ 0.00025 (przy wyższych LR) |
+
+(Uwaga: Wyniki zależą od inicjalizacji wag i losowego shuffle.)
 
 ## Rozszerzenia (pomysły)
 - Eksport metryk do JSON w `reports/`
-- Parametr `--seed`
-- Wizualizacja logów (skrypt w `tools/`)
-- Testy jednostkowe pytest dla forward/backward
-- Inne zbiory danych
+- Parametr `--seed` dla pełnej reprodukowalności (obecnie tylko split dataset)
+- Wizualizacja przebiegu błędu z oknem GUI / dashboard
+- Dodatkowe zbiory (Wine, Digits) w osobnym module loaderów
+- Testy dla metryk i zapisu/odczytu modelu
+
+## Licencja
+Projekt udostępniany na licencji MIT (patrz plik `LICENSE`).
