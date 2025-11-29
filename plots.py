@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import glob
 import os
+from typing import Optional
 
 
 def ensure_dir(path):
@@ -25,74 +26,100 @@ def read_log_csv(file):
 
 def smooth(data, window=10):
     data = np.array(data, dtype=float)
-    if len(data) < window:
-        return data  # Za mało punktów do wygładzenia
+    if window is None or window < 2:
+        return data
+    if len(data) < window * 2:  # jeśli bardzo mało punktów, nie wygładzaj by nie zgubić wszystkiego
+        return data
     return np.convolve(data, np.ones(window) / window, mode='valid')
 
 
-def plot_smoothed_mse(files, title, x_limit=1000, window=10, save_name=None):
-    plt.figure(figsize=(10, 6))
+def _short_label(fname: str):
+    base = os.path.splitext(os.path.basename(fname))[0]
+    # Skróć do formatu: lrX_momY_bias(T/F)
+    parts = base.split('_')
+    lr = next((p for p in parts if p.startswith('lr')), '')
+    mom = next((p for p in parts if p.startswith('mom')), '')
+    bias = 'on' if 'biasTrue' in base else ('off' if 'biasFalse' in base else '')
+    return f"{lr}_{mom}_b{bias}" if lr and mom else base
+
+
+def plot_smoothed_mse(files, title, x_limit=1000, window: Optional[int]=10, save_name=None):
+    plt.figure(figsize=(11, 6))
     any_plotted = False
-    for file in files:
+    max_epoch_seen = 0
+    for idx, file in enumerate(files):
         df = read_log_csv(file)
         if df is None or df.empty:
             continue
-        epochs = df['Epoch']
-        errors = df['AvgError']
-        smoothed_errors = smooth(errors.values, window=window)
-        smoothed_epochs = epochs.values[:len(smoothed_errors)]
-        label = os.path.splitext(os.path.basename(file))[0]
-        plt.plot(smoothed_epochs, smoothed_errors, label=label)
+        epochs = df['Epoch'].astype(int)
+        errors = df['AvgError'].astype(float)
+        max_epoch_seen = max(max_epoch_seen, epochs.max())
+        series = smooth(errors.values, window) if (window and window >= 2) else errors.values
+        # Dostosuj epoki do długości serii po wygładzaniu
+        if len(series) != len(epochs):
+            # Przytnij epoki do długości serii (zaczynając od początku)
+            epochs_adj = epochs.values[:len(series)]
+        else:
+            epochs_adj = epochs.values
+        label = _short_label(file)
+        color = plt.get_cmap('tab20')(idx % 20)
+        plt.plot(epochs_adj, series, label=label, linewidth=2.0, marker='o', markersize=4, alpha=0.85)
         any_plotted = True
     if not any_plotted:
         print(f"Brak danych do wykresu: {title}")
         plt.close()
         return
+    # Dynamiczny x_limit wg max epoki (z lekkim marginesem)
+    dyn_limit = max_epoch_seen + 5
+    plt.xlim(0, dyn_limit)
     plt.xlabel('Epoka')
-    plt.ylabel('MSE (wygładzony)')
+    plt.ylabel('MSE')
     plt.title(title)
-    plt.legend(fontsize=8)
-    plt.grid(True, alpha=0.3)
-    plt.xlim(0, x_limit)
-    tick_interval = 100 if x_limit <= 1000 else 500
-    plt.xticks(np.arange(0, x_limit + 1, tick_interval))
+    plt.grid(True, alpha=0.35)
+    # Ogranicz liczbę kolumn legendy
+    plt.legend(fontsize=8, ncol=min(3, (len(files)+1)//3), frameon=True)
+    plt.tight_layout()
     if save_name:
-        out_path = os.path.join(FIG_DIR, save_name)
-        plt.tight_layout()
-        plt.savefig(out_path, dpi=150)
-        print(f"Zapisano wykres: {out_path}")
+        out_path_png = os.path.join(FIG_DIR, save_name)
+        plt.savefig(out_path_png, dpi=160)
+        print(f"Zapisano wykres: {out_path_png}")
     else:
         plt.show()
 
 
 def plot_smoothed_mse_comparison(file_on, file_off, title, x_limit=3000, window=20, save_name=None):
     plt.figure(figsize=(10, 6))
-    for file in [file_on, file_off]:
+    max_epoch_seen = 0
+    for idx, file in enumerate([file_on, file_off]):
         if not os.path.isfile(file):
             print(f"Brak pliku: {file}")
             continue
         df = read_log_csv(file)
         if df is None or df.empty:
             continue
-        epochs = df['Epoch']
-        errors = df['AvgError']
-        smoothed_errors = smooth(errors.values, window=window)
-        smoothed_epochs = epochs.values[:len(smoothed_errors)]
+        epochs = df['Epoch'].astype(int)
+        errors = df['AvgError'].astype(float)
+        max_epoch_seen = max(max_epoch_seen, epochs.max())
+        series = smooth(errors.values, window) if (window and window >= 2) else errors.values
+        if len(series) != len(epochs):
+            epochs_adj = epochs.values[:len(series)]
+        else:
+            epochs_adj = epochs.values
         label = "Bias ON" if "biasTrue" in file or "bias_on" in file else "Bias OFF"
-        plt.plot(smoothed_epochs, smoothed_errors, label=label)
+        color = plt.get_cmap('tab10')(idx % 10)
+        plt.plot(epochs_adj, series, label=label, linewidth=2.4, marker='o', markersize=5)
+    dyn_limit = max_epoch_seen + 5
+    plt.xlim(0, dyn_limit)
     plt.xlabel('Epoka')
-    plt.ylabel('MSE (wygładzony)')
+    plt.ylabel('MSE')
     plt.title(title)
+    plt.grid(True, alpha=0.35)
     plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.xlim(0, x_limit)
-    tick_interval = 100 if x_limit <= 1000 else 500
-    plt.xticks(np.arange(0, x_limit + 1, tick_interval))
+    plt.tight_layout()
     if save_name:
-        out_path = os.path.join(FIG_DIR, save_name)
-        plt.tight_layout()
-        plt.savefig(out_path, dpi=150)
-        print(f"Zapisano wykres: {out_path}")
+        out_path_png = os.path.join(FIG_DIR, save_name)
+        plt.savefig(out_path_png, dpi=160)
+        print(f"Zapisano wykres: {out_path_png}")
     else:
         plt.show()
 
@@ -149,5 +176,16 @@ file_off = glob.glob(os.path.join('logs', 'autoencoder', '*lr0.5*mom0.5*biasFals
 
 if file_on and file_off:
     plot_smoothed_mse_comparison(file_on[0], file_off[0], title="Porównanie Autoenkodera: Bias ON vs Bias OFF", x_limit=3000, window=20, save_name='autoencoder_bias_compare.png')
+else:
+    print("Brak kompletnej pary do porównania bias ON/OFF.")
+
+# Regeneracja wykresów (nadpisanie poprzednich plików) tylko prostych głównych
+iris_files, ae_files = gather_logs()
+plot_smoothed_mse(iris_files, title="Iris – przebieg MSE", window=5, save_name='iris_all.png')
+plot_smoothed_mse(ae_files, title="Autoencoder – przebieg MSE", window=5, save_name='autoencoder_all.png')
+file_on = glob.glob(os.path.join('logs', 'autoencoder', '*lr0.5*mom0.5*biasTrue*.csv'))
+file_off = glob.glob(os.path.join('logs', 'autoencoder', '*lr0.5*mom0.5*biasFalse*.csv'))
+if file_on and file_off:
+    plot_smoothed_mse_comparison(file_on[0], file_off[0], title="Autoencoder – Bias ON vs OFF", window=5, save_name='autoencoder_bias_compare.png')
 else:
     print("Brak kompletnej pary do porównania bias ON/OFF.")
